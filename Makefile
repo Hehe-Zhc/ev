@@ -1,2 +1,2 @@
 redir: redir.c
-	gcc redir.c -o redir -levent
+	gcc -g -O0 redir.c -o redir -levent
