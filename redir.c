@@ -3,6 +3,9 @@
 #include<event2/event.h>
 #include<sys/socket.h>
 #include<sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include<linux/netfilter_ipv4.h>
 
 #define BUFSIZE 100
 
@@ -21,7 +24,6 @@ void cmd_msg_cb(int fd, short event, void *args)
 
 int tcp_server_init(int port, int listen_num)
 {
-    int errno_save;
     evutil_socket_t listener;
 
     listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -62,19 +64,30 @@ void socket_read_cb(int fd, short event, void *arg)
     write(fd, msg, len);
 }
 
-    
+int get_ori_dest_ip(int fd, struct sockaddr_in *ori_dst_addr)
+{
+    int len;
+    len = sizeof(struct sockaddr_in);
+    getsockopt(fd, SOL_IP, SO_ORIGINAL_DST, ori_dst_addr, &len);
+
+    return 0;
+}
 
 void accept_cb(int fd, short event, void *arg)
 {
     evutil_socket_t sockfd;
     
     struct sockaddr_in client;
+    struct sockaddr_in ori_addr;
     socklen_t len = sizeof(client);
 
     sockfd = accept(fd, (struct sockaddr *)&client, &len);
     evutil_make_socket_nonblocking(sockfd);
-
+    get_ori_dest_ip(sockfd, &ori_addr);
     printf("accept a client\n");
+    printf("ori addr: %s\n", inet_ntoa(ori_addr.sin_addr));
+    printf("ori port: %d\n", ntohs(ori_addr.sin_port));
+
 
     struct event_base *base = (struct event_base*)arg;
 
